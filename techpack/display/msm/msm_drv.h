@@ -1,5 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
  * Copyright (C) 2013 Red Hat
  * Author: Rob Clark <robdclark@gmail.com>
  *
@@ -107,8 +108,8 @@ enum msm_mdp_plane_property {
 
 	/* range properties */
 	PLANE_PROP_ZPOS = PLANE_PROP_BLOBCOUNT,
-	//xiaoxiaohuan@OnePlus.MultiMediaService,2018/08/04, add for fingerprint
-    PLANE_PROP_CUSTOM,
+//Vikas@OnePlus.MultiMediaService,2020/03/13, add for fingerprint
+	PLANE_PROP_CUSTOM,
 	PLANE_PROP_ALPHA,
 	PLANE_PROP_COLOR_FILL,
 	PLANE_PROP_H_DECIMATE,
@@ -140,7 +141,6 @@ enum msm_mdp_crtc_property {
 	CRTC_PROP_DEST_SCALER_LUT_ED,
 	CRTC_PROP_DEST_SCALER_LUT_CIR,
 	CRTC_PROP_DEST_SCALER_LUT_SEP,
-	CRTC_PROP_DSPP_INFO,
 
 	/* # of blob properties */
 	CRTC_PROP_BLOBCOUNT,
@@ -516,7 +516,6 @@ struct msm_resource_caps_info {
  *				 used instead of panel TE in cmd mode panels
  * @roi_caps:           Region of interest capability info
  * @qsync_min_fps	Minimum fps supported by Qsync feature
- * @has_qsync_min_fps_list True if dsi-supported-qsync-min-fps-list exits
  * @te_source		vsync source pin information
  */
 struct msm_display_info {
@@ -540,8 +539,6 @@ struct msm_display_info {
 	struct msm_roi_caps roi_caps;
 
 	uint32_t qsync_min_fps;
-	bool has_qsync_min_fps_list;
-
 	uint32_t te_source;
 };
 
@@ -592,15 +589,6 @@ struct msm_drm_thread {
 	struct task_struct *thread;
 	unsigned int crtc_id;
 	struct kthread_worker worker;
-};
-
-struct msm_idle {
-	u32 timeout_ms;
-	u32 encoder_mask;
-	u32 active_mask;
-
-	spinlock_t lock;
-	struct delayed_work work;
 };
 
 struct msm_drm_private {
@@ -713,8 +701,6 @@ struct msm_drm_private {
 
 	/* update the flag when msm driver receives shutdown notification */
 	bool shutdown_in_progress;
-
-	struct msm_idle idle;
 	ktime_t  commit_end_time;
 };
 
@@ -860,7 +846,7 @@ struct drm_gem_object *msm_gem_prime_import(struct drm_device *dev,
 void *msm_gem_get_vaddr(struct drm_gem_object *obj);
 void *msm_gem_get_vaddr_active(struct drm_gem_object *obj);
 void msm_gem_put_vaddr(struct drm_gem_object *obj);
-int msm_gem_madvise(struct drm_gem_object *obj, unsigned madv);
+int msm_gem_madvise(struct drm_gem_object *obj, unsigned int madv);
 int msm_gem_cpu_prep(struct drm_gem_object *obj, uint32_t op, ktime_t *timeout);
 int msm_gem_cpu_fini(struct drm_gem_object *obj);
 void msm_gem_free_object(struct drm_gem_object *obj);
@@ -896,10 +882,9 @@ struct drm_framebuffer *msm_framebuffer_init(struct drm_device *dev,
 		struct drm_gem_object **bos);
 struct drm_framebuffer *msm_framebuffer_create(struct drm_device *dev,
 		struct drm_file *file, const struct drm_mode_fb_cmd2 *mode_cmd);
-struct drm_framebuffer * msm_alloc_stolen_fb(struct drm_device *dev,
+struct drm_framebuffer *msm_alloc_stolen_fb(struct drm_device *dev,
 		int w, int h, int p, uint32_t format);
-int msm_fb_obj_get_attrs(struct drm_gem_object *obj, int *fb_ns,
-		int *fb_sec, int *fb_sec_dir, unsigned long *flags);
+
 struct drm_fb_helper *msm_fbdev_init(struct drm_device *dev);
 void msm_fbdev_free(struct drm_device *dev);
 
@@ -982,7 +967,6 @@ static inline void __exit msm_mdp_unregister(void)
 }
 #endif
 
-void msm_idle_set_state(struct drm_encoder *encoder, bool active);
 #ifdef CONFIG_DEBUG_FS
 void msm_gem_describe(struct drm_gem_object *obj, struct seq_file *m);
 void msm_gem_describe_objects(struct list_head *list, struct seq_file *m);
@@ -1015,7 +999,12 @@ void msm_writel(u32 data, void __iomem *addr);
 u32 msm_readl(const void __iomem *addr);
 
 #define DBG(fmt, ...) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
-#define VERB(fmt, ...) if (0) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
+//#define VERB(fmt, ...) if (0) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
+#define VERB(fmt, ...)  \
+	do {                 \
+		DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__) \
+	} while (0)
+
 
 static inline int align_pitch(int width, int bpp)
 {
@@ -1025,9 +1014,9 @@ static inline int align_pitch(int width, int bpp)
 }
 
 /* for the generated headers: */
-#define INVALID_IDX(idx) ({BUG(); 0;})
-#define fui(x)                ({BUG(); 0;})
-#define util_float_to_half(x) ({BUG(); 0;})
+#define INVALID_IDX(idx) ({BUG(); 0; })
+#define fui(x)                ({BUG(); 0; })
+#define util_float_to_half(x) ({BUG(); 0; })
 
 
 #define FIELD(val, name) (((val) & name ## __MASK) >> name ## __SHIFT)
@@ -1045,6 +1034,7 @@ static inline unsigned long timeout_to_jiffies(const ktime_t *timeout)
 	} else {
 		ktime_t rem = ktime_sub(*timeout, now);
 		struct timespec ts = ktime_to_timespec(rem);
+
 		remaining_jiffies = timespec_to_jiffies(&ts);
 	}
 

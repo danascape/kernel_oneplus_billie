@@ -231,16 +231,14 @@ struct dsi_ctrl_interrupts {
  * @misr_enable:         Frame MISR enable/disable
  * @misr_cache:          Cached Frame MISR value
  * @frame_threshold_time_us: Frame threshold time in microseconds, where
- *		 	  dsi data lane will be idle i.e from pingpong done to
- *			  next TE for command mode.
+ *			dsi data lane will be idle i.e from pingpong done to
+ *			next TE for command mode.
  * @phy_isolation_enabled:    A boolean property allows to isolate the phy from
  *                          dsi controller and run only dsi controller.
  * @null_insertion_enabled:  A boolean property to allow dsi controller to
  *                           insert null packet.
  * @modeupdated:	  Boolean to send new roi if mode is updated.
  * @split_link_supported: Boolean to check if hw supports split link.
- * @cmd_mode:		Boolean to indicate if panel is running in
-			command mode.
  */
 struct dsi_ctrl {
 	struct platform_device *pdev;
@@ -301,7 +299,6 @@ struct dsi_ctrl {
 	bool null_insertion_enabled;
 	bool modeupdated;
 	bool split_link_supported;
-	bool cmd_mode;
 };
 
 /**
@@ -871,11 +868,4 @@ int dsi_ctrl_wait4dynamic_refresh_done(struct dsi_ctrl *ctrl);
  * @enable:			variable to control masking/unmasking.
  */
 void dsi_ctrl_mask_overflow(struct dsi_ctrl *dsi_ctrl, bool enable);
-
-/**
- * dsi_ctrl_clear_slave_dma_status -   API to clear slave DMA status
- * @dsi_ctrl:                   DSI controller handle.
- * @flags:                      Modifiers
- */
-int dsi_ctrl_clear_slave_dma_status(struct dsi_ctrl *dsi_ctrl, u32 flags);
 #endif /* _DSI_CTRL_H_ */
