@@ -28,27 +28,21 @@
 
 #define DSI_MODE_MAX 32
 
-#define EVT2_113MHZ_OSC 0x99
-#define PVT_113MHZ_OSC 0x10
-#define PVT_113MHZ_OSC_XTALK 0x11
-
 #define GAMMA_READ_SUCCESS 1
 #define GAMMA_READ_ERROR 0
 
+#define SP_READ_SUCCESS 1
+#define SP_READ_ERROR 0
+
 extern u32 mode_fps;
 extern int gamma_read_flag;
-extern int tp_1v8_power;
-extern char b9_register_value[186];
-extern char dimming_gamma_60hz[48];
-extern char dimming_gamma_120hz[48];
-extern char b9_register_value_500step[229];
-extern char dimming_gamma_120hz_500step[48];
-
+extern int sp_read_flag;
 enum dsi_gamma_cmd_set_type {
 	DSI_GAMMA_CMD_SET_SWITCH_60HZ = 0,
 	DSI_GAMMA_CMD_SET_SWITCH_90HZ,
 	DSI_GAMMA_CMD_SET_MAX
 };
+
 /*
  * Defining custom dsi msg flag,
  * continued from drm_mipi_dsi.h
@@ -132,6 +126,8 @@ struct dsi_backlight_config {
 	u32 bl_min_level;
 	u32 bl_max_level;
 	u32 brightness_max_level;
+
+
 	u32 bl_level;
 	u32 bl_scale;
 	u32 bl_scale_sv;
@@ -142,7 +138,6 @@ struct dsi_backlight_config {
 	struct pwm_device *pwm_bl;
 	bool pwm_enabled;
 	u32 pwm_period_usecs;
-
 	bool bl_high2bit;
 	u32 bl_def_val;
 
@@ -165,12 +160,13 @@ struct dsi_panel_reset_config {
 	int lcd_mode_sel_gpio;
 	u32 mode_sel_state;
 };
+
 struct dsi_read_config {
-	 bool enabled;
-	 struct dsi_panel_cmd_set read_cmd;
-	 u32 cmds_rlen;
-	 u32 valid_bits;
-	 u8 rbuf[64];
+	bool enabled;
+	struct dsi_panel_cmd_set read_cmd;
+	u32 cmds_rlen;
+	u32 valid_bits;
+	u8 rbuf[64];
 };
 enum esd_check_status_mode {
 	ESD_MODE_REG_READ,
@@ -227,8 +223,8 @@ struct dsi_panel {
 	struct drm_panel_esd_config esd_config;
 
 	struct dsi_parser_utils utils;
-
 	char buf_id[32];
+	int panel_ic_v;
 	int panel_year;
 	int panel_mon;
 	int panel_day;
@@ -246,61 +242,50 @@ struct dsi_panel {
 	int panel_sec_index;
 	int panel_msec_high_index;
 	int panel_msec_low_index;
-	u64 panel_serial_number;
 	int panel_code_info;
 	int panel_stage_info;
 	int panel_production_info;
-	int panel_ic_v;
-	char buf_select[10];
-	int panel_tool;
+	int ddic_check_info;
 	int ddic_x;
 	int ddic_y;
-	int ddic_check_info;
-
-	int hbm_backlight;
-	int hbm_brightness;
+	int acl_mode;
+	int acl_cmd_index;
+	int acl_mode_index;
 	int hbm_mode;
-	bool is_hbm_enabled;
-	int op_force_screenfp;
-	bool dim_status;
-
+	int hbm_brightness;
 	int aod_mode;
 	int aod_status;
 	int aod_curr_mode;
 	int aod_disable;
-
-	int seed_lp_mode;
-	int acl_mode;
-	int acl_cmd_index;
-	int acl_mode_index;
 	int srgb_mode;
 	int dci_p3_mode;
 	int night_mode;
 	int oneplus_mode;
 	int adaption_mode;
+	int status_value;
+	int panel_mismatch_check;
+	int panel_mismatch;
+	int hbm_backlight;
 	int naive_display_p3_mode;
 	int naive_display_wide_color_mode;
 	int naive_display_srgb_color_mode;
 	int naive_display_loading_effect_mode;
 	int naive_display_customer_srgb_mode;
 	int naive_display_customer_p3_mode;
-	int mca_setting_mode;
-	struct delayed_work gamma_read_work;
-
-	int status_value;
-	int panel_mismatch_check;
-	int panel_mismatch;
-	bool panel_switch_status;
 	bool need_power_on_backlight;
-
-	int poc;
-	int vddr_gpio;
-	int vddd_gpio;
+	struct delayed_work gamma_read_work;
 	int tp1v8_gpio;
+	int vddr_gpio;
 	int err_flag_gpio;
 	bool is_err_flag_irq_enabled;
 	bool err_flag_status;
-
+	bool panel_switch_status;
+	bool is_hbm_enabled;
+	int  op_force_screenfp;
+	bool dim_status;
+	int seed_lp_mode;
+	int poc;
+	int panel_tool;
 	bool lp11_init;
 	bool ulps_feature_enabled;
 	bool ulps_suspend_enabled;
@@ -309,9 +294,6 @@ struct dsi_panel {
 	atomic_t esd_recovery_pending;
 
 	bool panel_initialized;
-#ifdef OEM_TARGET_PRODUCT_BILLIE
-	bool esd_gesture_recovery;
-#endif
 	bool te_using_watchdog_timer;
 	u32 qsync_min_fps;
 
@@ -322,11 +304,8 @@ struct dsi_panel {
 	int power_mode;
 
 	int panel_test_gpio;
-	int cabc_mode;
-#if defined(CONFIG_PXLW_IRIS)
-	bool is_secondary;
-#endif
 	enum dsi_panel_physical_type panel_type;
+	int cabc_mode;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -434,6 +413,7 @@ int dsi_panel_post_switch(struct dsi_panel *panel);
 
 void dsi_dsc_pclk_param_calc(struct msm_display_dsc_info *dsc, int intf_width);
 
+
 void dsi_panel_bl_handoff(struct dsi_panel *panel);
 
 struct dsi_panel *dsi_panel_ext_bridge_get(struct device *parent,
@@ -474,7 +454,4 @@ int dsi_panel_set_customer_p3_mode(struct dsi_panel *panel, int level);
 int dsi_panel_set_seed_lp_mode(struct dsi_panel *panel, int seed_lp_level);
 int dsi_panel_set_cabc_mode(struct dsi_panel *panel, u32 cabc_mode);
 int dsi_panel_get_cabc_mode(struct dsi_panel *panel, unsigned int *cabc_mode);
-int dsi_panel_set_mca_setting_mode(struct dsi_panel *panel, int mca_setting_mode);
-void dsi_panel_update_gamma_change_write(struct dsi_panel *panel);
-int dsi_panel_dimming_gamma_write(struct dsi_panel *panel);
 #endif /* _DSI_PANEL_H_ */

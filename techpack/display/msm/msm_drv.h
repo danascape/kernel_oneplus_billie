@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
  * Copyright (C) 2013 Red Hat
@@ -107,8 +108,8 @@ enum msm_mdp_plane_property {
 
 	/* range properties */
 	PLANE_PROP_ZPOS = PLANE_PROP_BLOBCOUNT,
-	//xiaoxiaohuan@OnePlus.MultiMediaService,2018/08/04, add for fingerprint
-    PLANE_PROP_CUSTOM,
+//Vikas@OnePlus.MultiMediaService,2020/03/13, add for fingerprint
+	PLANE_PROP_CUSTOM,
 	PLANE_PROP_ALPHA,
 	PLANE_PROP_COLOR_FILL,
 	PLANE_PROP_H_DECIMATE,
@@ -845,7 +846,7 @@ struct drm_gem_object *msm_gem_prime_import(struct drm_device *dev,
 void *msm_gem_get_vaddr(struct drm_gem_object *obj);
 void *msm_gem_get_vaddr_active(struct drm_gem_object *obj);
 void msm_gem_put_vaddr(struct drm_gem_object *obj);
-int msm_gem_madvise(struct drm_gem_object *obj, unsigned madv);
+int msm_gem_madvise(struct drm_gem_object *obj, unsigned int madv);
 int msm_gem_cpu_prep(struct drm_gem_object *obj, uint32_t op, ktime_t *timeout);
 int msm_gem_cpu_fini(struct drm_gem_object *obj);
 void msm_gem_free_object(struct drm_gem_object *obj);
@@ -881,7 +882,7 @@ struct drm_framebuffer *msm_framebuffer_init(struct drm_device *dev,
 		struct drm_gem_object **bos);
 struct drm_framebuffer *msm_framebuffer_create(struct drm_device *dev,
 		struct drm_file *file, const struct drm_mode_fb_cmd2 *mode_cmd);
-struct drm_framebuffer * msm_alloc_stolen_fb(struct drm_device *dev,
+struct drm_framebuffer *msm_alloc_stolen_fb(struct drm_device *dev,
 		int w, int h, int p, uint32_t format);
 
 struct drm_fb_helper *msm_fbdev_init(struct drm_device *dev);
@@ -998,7 +999,12 @@ void msm_writel(u32 data, void __iomem *addr);
 u32 msm_readl(const void __iomem *addr);
 
 #define DBG(fmt, ...) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
-#define VERB(fmt, ...) if (0) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
+//#define VERB(fmt, ...) if (0) DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__)
+#define VERB(fmt, ...)  \
+	do {                 \
+		DRM_DEBUG_DRIVER(fmt"\n", ##__VA_ARGS__) \
+	} while (0)
+
 
 static inline int align_pitch(int width, int bpp)
 {
@@ -1008,9 +1014,9 @@ static inline int align_pitch(int width, int bpp)
 }
 
 /* for the generated headers: */
-#define INVALID_IDX(idx) ({BUG(); 0;})
-#define fui(x)                ({BUG(); 0;})
-#define util_float_to_half(x) ({BUG(); 0;})
+#define INVALID_IDX(idx) ({BUG(); 0; })
+#define fui(x)                ({BUG(); 0; })
+#define util_float_to_half(x) ({BUG(); 0; })
 
 
 #define FIELD(val, name) (((val) & name ## __MASK) >> name ## __SHIFT)
@@ -1028,6 +1034,7 @@ static inline unsigned long timeout_to_jiffies(const ktime_t *timeout)
 	} else {
 		ktime_t rem = ktime_sub(*timeout, now);
 		struct timespec ts = ktime_to_timespec(rem);
+
 		remaining_jiffies = timespec_to_jiffies(&ts);
 	}
 
